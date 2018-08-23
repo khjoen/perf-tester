@@ -34,13 +34,13 @@ This common stategy will work well if the clock counter keeps incrementing durin
 Unfortunately, in some cases, the clock counter increments stops if interrupts are disabled.  On some Arduino board interrupts are disabled when several events occur: applications that call the cli(), noInterrupts() when time critical tasks are performed or even when millis() and micros() are called, interrupts are disabled for a short period to read the value of the counter without it being updated while the reading is performed.
 
 ### The need
-The initial need for a project like perf-tester was to get performance timings on a library that could not be timed accurately because of a portion of its code disables interrupts for a period of time in its processing.  Another stategy is to get compile and output assembly code and add up all the command according to the number of processor cycles they take, calculate the time for one cycle and multiply it by the number of cycles counted.  This stategy is valid but in some case can be laborious when the code is very large.  To get timing data, we can also use an emperical stategy to time execution of this kind of programs.  The stategy used in this sketch is to take the timing from another source.
+The initial need for a project like perf-tester was to get performance timings on a library that could not be timed accurately because of a portion of its code disables interrupts for a period of time during its processing.  Another stategy is to compile and get assembly code to add up all the command according to the number of processor cycles they take, calculate the time for one cycle and multiply it by the number of cycles counted.  This stategy is valid but in some case can be laborious when the code is very large.  To get timing data, we can also use an emperical stategy to time execution of this kind of programs.  The stategy used in this sketch is to take the timing from another source.
 
 ### The setup
-The sketch perf-tester is meant to be used on an Arduino board (A1) that will act as a timer by receiving external interrupts from the Arduino (A2) performing the execution of the code being timed.  In our serie of tests A2 will be running the differents portion of code to be timed and it will set some pin HIGH just before the tests start and and another pin HIGH right after they end.  When the pins will transition from LOW to HIGH, interrupts will be triggered and interrupt service routines (ISR) on A1 will read the time using micros() as close to its trigger as possible.
+The sketch perf-tester is meant to be used on an Arduino board (A1) that will act as a timer by receiving external interrupts to give start and stop instructions from another Arduino (A2) performing the execution of the code being timed.  In our serie of tests A2 will be running the differents portion of code to be timed and it will set some pin HIGH just before the tests start and and another pin HIGH right after they end.  When the pins will transition from LOW to HIGH, interrupts will be triggered and interrupt service routines (ISR) on A1 will read the time using micros() as close to its trigger as possible.
 
 ### blank-test.ino
-Lets take the blank-test sketch as a basic example.  This example is useful because it gives an idea of the time required for timer board to read the signals one right after the other and it will give us an idea of the overhead of a no-op program.  The board on the left is A2, the one running the test and sending start timer signal by pulling the pin 11 to HIGH and a stop signal through pin 9 by pulling it to HIGH also.  The other board on the right is A1, the one performing the timing by receiving the signals and calling the ISR accordingly.  It also displays the timing calculation on the serial console.  
+Lets take the blank-test sketch as a basic example.  This example is useful because it gives an idea of the time required for timer board to read the signals one right after the other and it will give us an idea of the overhead of a empty program.  The photo below shows A2 on the left, the one running the test and sending start timer signal by pulling the pin 11 to HIGH and a stop signal through pin 9 by pulling it to HIGH also.  The other board on the right is A1, the one performing the timing by receiving the signals and calling the ISR accordingly.  It also displays the timing calculation on the serial console.  
 
 ![2 Arduinos and a breadboard](images/pic1.JPG?raw=true "Title")
 
@@ -140,7 +140,7 @@ Test done in 21379220 microseconds.
 Test done in 21379224 microseconds.
 ```
 
-The perf-tester stategy is used to get an idea of the time counted by the other board during the same test.  Comparison of the results will most probably will introduce discrepancy of time between membres of system not sharing the same clock.
+The perf-tester stategy is used to get an idea of the time counted by the other board during the same test.  Comparison of the results will most probably will introduce discrepancy of time between membres of system not sharing the same clock and will allow the calculation of a drifting rate.
 
 ```cpp
 // save compiler options
@@ -189,7 +189,7 @@ Test #3 took 21365432 microseconds.
 ```
 When the test is long enough, a difference in the period of clocks cycles becomes apparent if clocks are not calibrated.  In this case, time runs faster A1 so the rate at which they are drifting apart is about 21379220/21365432 (DR)
 
-Back to the question of how long does millis() take to execute.  At this stage calls to it in the loop being timed is added.  A test with millis() was chosen in preference to micros() because there exists calculations using the cycle counting based on assembly code ![here](https://arduino.stackexchange.com/questions/113/is-it-possible-to-find-the-time-taken-by-millis).  ![1.812microseconds](https://latex.codecogs.com/gif.latex?1.812\mu%20s) was calculated.  Lets see if the empirical method gets the same result.
+Back to the question of how long does millis() take to execute.  At this stage, calls to it in the loop being timed is added.  A test with millis() was chosen in preference to micros() because there exists calculations using the cycle counting based on assembly code ![here](https://arduino.stackexchange.com/questions/113/is-it-possible-to-find-the-time-taken-by-millis).  ![1.812microseconds](https://latex.codecogs.com/gif.latex?1.812\mu%20s) was calculated.  Lets see if the empirical method gets the same result.
 
 ```cpp
   // code to be timed here.
@@ -215,22 +215,31 @@ Take the time recorded by A1's for the test (T1) and convert it to A2's frequenc
 
 ![(39588908*21379220/21365432-21379220)/10000000](https://latex.codecogs.com/gif.latex?\frac{{39588908*\frac{21379220}{21365432}%20-%2021379220}}{10000000}%20\approx%201.824\mu%20s)
 
-That is close enough or maybe just coincidence?  There is a board having its clock source being off.  If the time between the two interrupts is subtracted from this as per our blank-test results and the result is 1.812 or 1.816.  
+That is close enough or maybe just coincidence?  There is a board having its clock source being off but the other is right.  If the time between the two interrupts is subtracted from this as per our blank-test results and the result is 1.812 or 1.816.  
 
-It is also to be noted that even though millis() turns interrupts off, the results from the common stategy gave similar results on A2 with this test.
+It is also to be noted that even though millis() turns interrupts off, the results from the common stategy gave similar results on A2 with this test which invalidates the hypothesis.
 
 The same test with micros() show more time to use it compared to millis().
 
 ![(57185572*21379220/21365432-21379220)/10000000](https://latex.codecogs.com/gif.latex?\frac{{57185572*\frac{21379220}{21365432}%20-%2021379220}}{10000000}%20\approx%203.58\mu%20s)
 
 ### Use perf-tester to compare timings between two versions of a DHT22 driver.
-Lets conclude this article with a test on a library that turns off interrupts for a long period to communicate with a sensor to get its data.  The driver was written by adafruit.  There were complaints there were frequent reading errors with it and also that it took too long to do its job.
+Lets conclude this article with a test that introduced the need for a sketch like perf-tester.   Lets use it on a library that turns off interrupts for a long period to communicate with a sensor to get its data.  The driver was written by adafruit.  There were many complaints there were frequent reading errors with it and also that it took too long to do its job.
 
-The performance tests will be performed on https://github.com/adafruit/DHT-sensor-library as of commit c97897771807613d456b318236e18a04b013410b and on the forked version https://github.com/khjoen/DHT-sensor-library which has a pull request waiting to be merged as of today 2018/08/23.
+The performance tests will be performed on https://github.com/adafruit/DHT-sensor-library as of commit c97897771807613d456b318236e18a04b013410b and on the forked version https://github.com/khjoen/DHT-sensor-library which is a pull request waiting to be merged as of today 2018/08/23.
 
-First, make sure the right version of the library is used.  Just put the desired library version in the arduino libraries folder of the sketchbook directory, compile and upload to the board, perform the test, then remove that directory, put the other version, compile and upload, perform the other test and compare results.
+The test will be performed as per the following.
+- Calculate drifting rate DR as per instructions seen previously in this article.
+- Create a sketch for DHT22-test. Its code, DHT22-test.ino, can be found in the dht22-test directory of this repository.
+- Put the desired library version in the arduino libraries folder of the sketchbook directory.
+- Compile and upload to the board A2
+- Perform the test and record the results
+- Remove that directory and put the other version of the library
+- Compile and upload to A2
+- Perform the test and record the results
+- Compare results.
 
-Lets use adafruit's version first.  A1 outputs this on its serial port.  The code run on A2 can be found in the dht22-test directory of this repository.
+Lets use adafruit's version first.  A1 outputs this on its serial port.  The code run on A2 is dht22-test.ino present in the DHT22-test directory of this repository.
 
 ```
 *****************************
@@ -268,7 +277,7 @@ Humidity: 52.80 %	Temperature: 25.20 *C.
 Test done in 270524 microseconds.
 ```
 
-Now, lets perform the test with the proposed pull request version.  See interesting results from A2's serial.  The timings oscilate from about 1776 to 2808 microseconds.  The read errors are gone.
+Now, lets perform the test with the proposed pull request version.  See interesting results from A2's serial.  The timings oscilate from about 1776 to 2808 microseconds.  The read errors are gone.  Note that the it ran for hours without outputing a single error.
 ```
 Humidity: 53.70 %	Temperature: 25.30 *C.
 Test done in 2808 microseconds.
@@ -319,5 +328,5 @@ Result for proposed pull request version without read errors:
 ![5872*21379220/21365432](https://latex.codecogs.com/gif.latex?5872*\frac{21379220}{21365432}%20\approx%205875.79\mu%20s)
 
 
-###That's it!  
+### That's it!  
 With hope that this will be useful.
