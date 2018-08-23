@@ -224,11 +224,11 @@ The same test with micros() show more time to use it compared to millis().
 ![(57185572*21379220/21365432-21379220)/10000000](https://latex.codecogs.com/gif.latex?\frac{{57185572*\frac{21379220}{21365432}%20-%2021379220}}{10000000}%20\approx%203.58\mu%20s)
 
 ### Use perf-tester to compare timings between two versions of a DHT22 driver.
-Lets do a test of a library that turns off interrupts for a long period to communicate with a sensor to get its data.  The driver was written by adafruit.  There were complaints there were frequent reading errors with it and also that it took too long to do its job.
+Lets conclude this article with a test on a library that turns off interrupts for a long period to communicate with a sensor to get its data.  The driver was written by adafruit.  There were complaints there were frequent reading errors with it and also that it took too long to do its job.
 
 The performance tests will be performed on https://github.com/adafruit/DHT-sensor-library as of commit c97897771807613d456b318236e18a04b013410b and on the forked version https://github.com/khjoen/DHT-sensor-library which has a pull request waiting to be merged as of today 2018/08/23.
 
-First, make sure the right version of the library is used.  Just put the desired library version in the libraries folder of the sketchbook directory, perform the test, then remove that directory, put the other other perform the other test and compare results.  
+First, make sure the right version of the library is used.  Just put the desired library version in the arduino libraries folder of the sketchbook directory, compile and upload to the board, perform the test, then remove that directory, put the other version, compile and upload, perform the other test and compare results.
 
 Lets use adafruit's version first.  A1 outputs this on its serial port.  The code run on A2 can be found in the dht22-test directory of this repository.
 
@@ -268,7 +268,26 @@ Humidity: 52.80 %	Temperature: 25.20 *C.
 Test done in 270524 microseconds.
 ```
 
-Now, lets perform the test with the proposed pull request version.
+Now, lets perform the test with the proposed pull request version.  See interesting results from A2's serial.  The timings oscilate from about 1776 to 2808 microseconds.
+```
+Humidity: 53.70 %	Temperature: 25.30 *C.
+Test done in 2808 microseconds.
+Humidity: 53.70 %	Temperature: 25.30 *C.
+Test done in 2804 microseconds.
+Humidity: 53.70 %	Temperature: 25.30 *C.
+Test done in 2808 microseconds.
+Humidity: 53.70 %	Temperature: 25.30 *C.
+Test done in 1776 microseconds.
+Humidity: 53.70 %	Temperature: 25.30 *C.
+Test done in 1776 microseconds.
+Humidity: 53.70 %	Temperature: 25.30 *C.
+Test done in 1776 microseconds.
+Humidity: 53.70 %	Temperature: 25.30 *C.
+Test done in 2812 microseconds.
+Humidity: 53.70 %	Temperature: 25.30 *C.
+Test done in 2860 microseconds.
+```
+And what A1 has to say.
 
 ```
 *****************************
@@ -287,7 +306,9 @@ Test #8 took 5872 microseconds.
 Test #9 took 5868 microseconds.
 Test #10 took 5868 microseconds.
 ```
-Now lets scale these to a calibrated value using DR.
+It is now clear that there are situations were perf-tester or similar tool are required to time the duration of some portion of code.
+
+Now lets scale these to a calibrated value using the calculated DR to get the final results for the DHT22 test.
 
 Result for version before proposed pull request:
 
@@ -298,3 +319,5 @@ Result for proposed pull request version without read errors:
 ![5872*21379220/21365432](https://latex.codecogs.com/gif.latex?5872*\frac{21379220}{21365432}%20\approx%205875.79\mu%20s)
 
 
+###That's it!  
+With hope that this will be useful.
