@@ -101,10 +101,10 @@ Test #17 took 8 microseconds.
 
 
 
-### how long does it takes to call millis()?
-The problem here is timing millis() with itself cannot work accurately.  The main argument is millis() disables interrupts to read the clock counter.  The common stategy may not work in this case.  Lets use the perf-tester instead.  
+### how long does a call millis() takes?
+The hypothesis is millis() cannot be timed using itself to get accurate results.  The main argument is millis() disables interrupts to read the clock counter.  The common stategy may not work in this case.  Lets use the perf-tester instead and see.  
 
-Our stategy to get an idea of how long micros takes is to first setup a test with a blank loop not forgetting to disable code optimization during the compilation, otherwise the compiler may not include the loop in its outputed object.  Then, we time the loop locally using the common stategy.  Nothing disables interrupts so the common stategy is ok in this case.
+The stategy to get an idea of how long millis() takes is to first setup a test with a blank loop not forgetting to disable code optimization during the compilation, otherwise the compiler may not include the loop in its outputed object.  Then, we time the loop locally using the common stategy.  Nothing disables interrupts so the common stategy is ok at this stage.  Do the same with interrupts and A1, compare timings to get an idea of how the board's clock are drifting apart from each other, then do the tests with a call to millis() in the loop and calculate timing results.
 
 ```
 // save compiler options
@@ -134,7 +134,7 @@ void loop() {
 #pragma GCC pop_options
 ```
 
-The output for the program above was the following on the board used for the test.
+The output for the program above was the following on the board A2 used for the test.
 
 ```
 Test done in 21379220 microseconds.
@@ -189,9 +189,9 @@ Test #1 took 21365432 microseconds.
 Test #2 took 21365440 microseconds.
 Test #3 took 21365432 microseconds.
 ```
-When the test is long enough, a difference in the period of clocks cycles becomes apparent.  In this case, time runs faster A1 so the rate at which they are drifting apart is about 21379220/21365432
+When the test is long enough, a difference in the period of clocks cycles becomes apparent if clocks are not calibrated.  In this case, time runs faster A1 so the rate at which they are drifting apart is about 21379220/21365432 (DR)
 
-Back to the question of how long does millis() take to execute.  At this stage calls to it in the loop being timed is added.  A test with millis() was chosen in preference to micros() because there exists calculations using the cycle counting based on assembly code [here!](https://arduino.stackexchange.com/questions/113/is-it-possible-to-find-the-time-taken-by-millis).  1.812microseconds was calculated.  Lets see if the empirical method gets the same result.
+Back to the question of how long does millis() take to execute.  At this stage calls to it in the loop being timed is added.  A test with millis() was chosen in preference to micros() because there exists calculations using the cycle counting based on assembly code ![here](https://arduino.stackexchange.com/questions/113/is-it-possible-to-find-the-time-taken-by-millis).  ![1.812microseconds](https://latex.codecogs.com/gif.latex?1.812\mu%20s) was calculated.  Lets see if the empirical method gets the same result.
 
 ```
   // code to be timed here.
@@ -213,23 +213,90 @@ Test #1 took 39588908 microseconds.
 Test #2 took 39588912 microseconds.
 Test #3 took 39588920 microseconds.
 ```
-Take the time recorded by A1's for the test(T1) and convert it to A2's frequency with the drifting rate (T1), then take A2's time performing empty loop (T2), subtract them (T1 - T2) and divide the result with the number of calls to have an approximation of the time spent in micros().
+Take the time recorded by A1's for the test (T1) and convert it to A2's frequency with the drifting rate (DR), then take A2's time performing empty loop (T2), subtract them (T1(DR) - T2) and divide the result with the number of calls to have an approximation of the time spent in micros().
 
 ![(39588908*21379220/21365432-21379220)/10000000](https://latex.codecogs.com/gif.latex?\frac{{39588908*\frac{21379220}{21365432}%20-%2021379220}}{10000000}%20\approx%201.824\mu%20s)
 
-That is close enough or maybe just coincidence?  At least one board has its clock source being uncalibrated.  If the time between the two interrupts is subtracted from this, the result is 1.812 or 1.816.   It is also to be noted that even though millis() turns interrupts off, the results from the common stategy gave similar results on A2 with this test.
+That is close enough or maybe just coincidence?  There is a board having its clock source being off.  If the time between the two interrupts is subtracted from this as per our blank-test results and the result is 1.812 or 1.816.  
+
+It is also to be noted that even though millis() turns interrupts off, the results from the common stategy gave similar results on A2 with this test.
 
 The same test with micros() show more time to use it compared to millis().
 
 ![(57185572*21379220/21365432-21379220)/10000000](https://latex.codecogs.com/gif.latex?\frac{{57185572*\frac{21379220}{21365432}%20-%2021379220}}{10000000}%20\approx%203.58\mu%20s)
 
-### Use perf-tester with a new version of 
-Lets do a test of a library that turns off interrupt to communicate with a sensor.
+### Use perf-tester to compare timings between two versions of a DHT22 driver.
+Lets do a test of a library that turns off interrupts for a long period to communicate with a sensor to get its data.  The driver was written by adafruit.  There were complaints there were frequent reading errors with it and also that it took too long to do its job.
 
+The performance tests will be performed on https://github.com/adafruit/DHT-sensor-library as of commit c97897771807613d456b318236e18a04b013410b and on the forked version https://github.com/khjoen/DHT-sensor-library which has a pull request waiting to be merged as of today 2018/08/23.
 
+First, make sure the right version of the library is used.  Just put the desired library version in the libraries folder of the sketchbook directory, perform the test, then remove that directory, put the other other perform the other test and compare results.  
 
+Lets use adafruit's version first.  A1 outputs this on its serial port.  The code run on A2 can be found in the dht22-test directory of this repository.
 
+```
+*****************************
+*  perf-tester is starting. *
+*    start signal on pin2   *
+*    stop signal on pin3    *
+*****************************
+Test #1 took 274436 microseconds.
+Test #2 took 274436 microseconds.
+Test #3 took 274668 microseconds.
+Test #4 took 274668 microseconds.
+Test #5 took 274664 microseconds.
+Test #6 took 274556 microseconds.
+Test #7 took 274556 microseconds.
+Test #8 took 274556 microseconds.
+Test #9 took 274560 microseconds.
+Test #10 took 274672 microseconds.
+```
 
+A2's serial shown a few reading errors.  *Failed to read from DHT sensor!*
+```
+Test done in 270520 microseconds.
+Humidity: 54.60 %	Temperature: 25.20 *C.
+Test done in 271544 microseconds.
+Humidity: 54.60 %	Temperature: 25.20 *C.
+Test done in 271548 microseconds.
+Humidity: 54.60 %	Temperature: 25.20 *C.
+Test done in 270524 microseconds.
+Humidity: 54.60 %	Temperature: 25.20 *C.
+Test done in 271548 microseconds.
+Humidity: 54.60 %	Temperature: 25.20 *C.
+Failed to read from DHT sensor!
+Test done in 271608 microseconds.
+Humidity: 52.80 %	Temperature: 25.20 *C.
+Test done in 270524 microseconds.
+```
 
+Now, lets perform the test with the proposed pull request version.
+
+```
+*****************************
+*  perf-tester is starting. *
+*    start signal on pin2   *
+*    stop signal on pin3    *
+*****************************
+Test #1 took 5932 microseconds.
+Test #2 took 5868 microseconds.
+Test #3 took 5868 microseconds.
+Test #4 took 5868 microseconds.
+Test #5 took 5864 microseconds.
+Test #6 took 5872 microseconds.
+Test #7 took 5868 microseconds.
+Test #8 took 5872 microseconds.
+Test #9 took 5868 microseconds.
+Test #10 took 5868 microseconds.
+```
+Now lets scale these to a calibrated value using DR.
+
+Result for version before proposed pull request:
+
+![271548*21379220/21365432](https://latex.codecogs.com/gif.latex?271548*\frac{21379220}{21365432}%20\approx%20271723.24\mu%20s)
+
+Result for proposed pull request version without read errors:
+
+![5872*21379220/21365432](https://latex.codecogs.com/gif.latex?5872*\frac{21379220}{21365432}%20\approx%205875.79\mu%20s)
 
 
