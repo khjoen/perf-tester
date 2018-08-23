@@ -1,5 +1,3 @@
-# THIS README IS NOT READY, IT IS INCOMPLETE
-
 # perf-tester
 Arduino interrupt driven performance tester
 
@@ -8,7 +6,7 @@ Arduino interrupt driven performance tester
 Timing a program seems trivial to do but in some circumstances can lead to inacurate results if the common stategy is used in all cases.  The common stategy referred above is to get the time just before a test, run the program being timed, get the time again right after it completes and compute the time difference to get the time spent as in the code sample below.
 
 
-```
+```cpp
 void loop()
 {  
   unsigned long before, after;  
@@ -44,11 +42,11 @@ The sketch perf-tester is meant to be used on an Arduino board (A1) that will ac
 ### blank-test.ino
 Lets take the blank-test sketch as a basic example.  This example is useful because it gives an idea of the time required for timer board to read the signals one right after the other and it will give us an idea of the overhead of a no-op program.  The board on the left is A2, the one running the test and sending start timer signal by pulling the pin 11 to HIGH and a stop signal through pin 9 by pulling it to HIGH also.  The other board on the right is A1, the one performing the timing by receiving the signals and calling the ISR accordingly.  It also displays the timing calculation on the serial console.  
 
-![Alt text](images/pic1.JPG?raw=true "Title")
+![2 Arduinos and a breadboard](images/pic1.JPG?raw=true "Title")
 
 Here is the main loop for blank-test run by A2.  Note that direct register port access, thought the PORTB address, is used to speed things up.  When the right bit is set and connections are correctly wired an interrupt is fired on A1 when A2 execute PORTB |= B00001000; and PORTB |= B00000010; instructions.
 
-```
+```cpp
 void loop() {
 
   // init port 9 and 11 to zero
@@ -106,7 +104,7 @@ The hypothesis is millis() cannot be timed using itself to get accurate results.
 
 The stategy to get an idea of how long millis() takes is to first setup a test with a blank loop not forgetting to disable code optimization during the compilation, otherwise the compiler may not include the loop in its outputed object.  Then, we time the loop locally using the common stategy.  Nothing disables interrupts so the common stategy is ok at this stage.  Do the same with interrupts and A1, compare timings to get an idea of how the board's clock are drifting apart from each other, then do the tests with a call to millis() in the loop and calculate timing results.
 
-```
+```cpp
 // save compiler options
 #pragma GCC push_options
 // disable optimization
@@ -144,7 +142,7 @@ Test done in 21379224 microseconds.
 
 The perf-tester stategy is used to get an idea of the time counted by the other board during the same test.  Comparison of the results will most probably will introduce discrepancy of time between membres of system not sharing the same clock.
 
-```
+```cpp
 // save compiler options
 #pragma GCC push_options
 // disable optimization
@@ -193,7 +191,7 @@ When the test is long enough, a difference in the period of clocks cycles become
 
 Back to the question of how long does millis() take to execute.  At this stage calls to it in the loop being timed is added.  A test with millis() was chosen in preference to micros() because there exists calculations using the cycle counting based on assembly code ![here](https://arduino.stackexchange.com/questions/113/is-it-possible-to-find-the-time-taken-by-millis).  ![1.812microseconds](https://latex.codecogs.com/gif.latex?1.812\mu%20s) was calculated.  Lets see if the empirical method gets the same result.
 
-```
+```cpp
   // code to be timed here.
   while(count < 10000000) {
     unsigned long t = millis();
