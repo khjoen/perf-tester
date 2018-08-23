@@ -268,7 +268,7 @@ Humidity: 52.80 %	Temperature: 25.20 *C.
 Test done in 270524 microseconds.
 ```
 
-Now, lets perform the test with the proposed pull request version.  See interesting results from A2's serial.  The timings oscilate from about 1776 to 2808 microseconds.
+Now, lets perform the test with the proposed pull request version.  See interesting results from A2's serial.  The timings oscilate from about 1776 to 2808 microseconds.  The read errors are gone.
 ```
 Humidity: 53.70 %	Temperature: 25.30 *C.
 Test done in 2808 microseconds.
