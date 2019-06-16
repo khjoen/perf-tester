@@ -189,7 +189,7 @@ Test #3 took 21365432 microseconds.
 ```
 When the test is long enough, a difference in the period of clocks cycles becomes apparent if clocks are not calibrated.  In this case, time runs faster A1 so the rate at which they are drifting apart is about 21379220/21365432 (DR).  The drifting rate will give us an idea of the timing as if the program being timed were timed with A2's clock when done on A1 with perf-tester.
 
-Back to the question of how long does millis() take to execute.  At this stage, calls to it in the loop being timed is added.  A test with millis() was chosen in preference to micros() because there exists calculations using the cycle counting based on assembly code ![here](https://arduino.stackexchange.com/questions/113/is-it-possible-to-find-the-time-taken-by-millis).  ![1.812microseconds](https://latex.codecogs.com/gif.latex?1.812\mu%20s) was calculated.  Lets see if the empirical method gets the same result.
+Back to the question of how long does millis() take to execute.  At this stage, calls to it in the loop being timed is added.  A test with millis() was chosen in preference to micros() because there exists calculations using the cycle counting based on assembly code [here]: https://arduino.stackexchange.com/questions/113/is-it-possible-to-find-the-time-taken-by-millis.  ![1.812microseconds](https://latex.codecogs.com/gif.latex?1.812\mu%20s) was calculated.  Lets see if the empirical method gets the same result.
 
 ```cpp
   // code to be timed here.
